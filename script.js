@@ -1,18 +1,27 @@
 // script.js
 fetch('data.json')
   .then(res => res.json())
-  .then(data => {
+  .then(rawData => {
     const container = document.getElementById('notes-container');
+    container.innerHTML = "";
+
+    // Handle both formats: array OR object with "classes"
+    const data = Array.isArray(rawData) ? rawData : (rawData.classes || []);
+
+    if (!data || data.length === 0) {
+      container.innerHTML = "<p>No lectures found. Please check data.json.</p>";
+      return;
+    }
 
     data.forEach(cls => {
       const classDiv = document.createElement('div');
       classDiv.classList.add('class');
 
       const classTitle = document.createElement('h2');
-      classTitle.textContent = `Class ${cls.class}`;
+      classTitle.textContent = `Class ${cls.class || cls.name}`;
       classDiv.appendChild(classTitle);
 
-      cls.subjects.forEach(subject => {
+      (cls.subjects || []).forEach(subject => {
         const subjectDiv = document.createElement('div');
         subjectDiv.classList.add('subject');
 
@@ -20,7 +29,7 @@ fetch('data.json')
         subjectTitle.textContent = subject.name;
         subjectDiv.appendChild(subjectTitle);
 
-        subject.chapters.forEach(chapter => {
+        (subject.chapters || []).forEach(chapter => {
           const chapterDiv = document.createElement('div');
           chapterDiv.classList.add('chapter');
 
@@ -35,15 +44,14 @@ fetch('data.json')
 
           chapterDiv.appendChild(title);
 
-          // Lecture list
-          chapter.lectures.forEach(lec => {
+          (chapter.lectures || chapter.items || []).forEach(lec => {
             const card = document.createElement('div');
             card.classList.add('card');
             card.innerHTML = `
               <p class="lecture-title">${lec.title}</p>
               <div class="actions">
-                <a class="btn open" href="${lec.pdf}" target="_blank">📖 Open</a>
-                <a class="btn download" href="${lec.pdf}" download>⬇ Download</a>
+                <a class="btn open" href="${lec.pdf || lec.path}" target="_blank">📖 Open</a>
+                <a class="btn download" href="${lec.pdf || lec.path}" download>⬇ Download</a>
               </div>
             `;
             chapterDiv.appendChild(card);
@@ -67,4 +75,8 @@ fetch('data.json')
       });
     });
   })
-  .catch(err => console.error('Error loading data.json:', err));
+  .catch(err => {
+    document.getElementById('notes-container').innerHTML =
+      "<p>Error loading data.json</p>";
+    console.error('Error loading data.json:', err);
+  });
